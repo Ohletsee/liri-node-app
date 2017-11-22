@@ -3,9 +3,10 @@
 // Information is retrieved and displayed from the following Web APIs using node.js:
 //	1. Open Movie Database
 //	2. Spotify
-//	3. Twitter.
+//	3. Twitter
 
-// The retrieved information is displayed in the bash/terminal window and written to a file called log.txt. 
+// The retrieved information is displayed in the bash/terminal window and written to the file log.txt. 
+// NOTE: Open the log.txt file in the Sublime Text editor. For some reason it doesn't display correctly in Windows Notepad.
 
 // Command line arguments are not case-sensetive.
 
@@ -24,11 +25,16 @@
 // node liri.js do-what-it-says. This will read the text file random.txt to retrieve the action argument and song/movie name. 
 
 
-var argAction = process.argv[2];	// Action argument from the command line
-var argTitle = process.argv[3];		// The first word of a song/movie name argument from the command line
-var originalArgTitle = "";				// The original song/movie name argument from the
-var validArguments; 							// Boolean used in validating command line arguments
-var displayResults = "";					// Displays the results to the bash/terminal window and is written to the log.txt file
+var argAction = process.argv[2];			// Action argument entered on the command line
+var argTitle = process.argv[3];				// The first word of a song/movie name argument entered on the command line
+var originalArgTitle = '';						// The original song/movie name argument entered on the command line
+var validArguments; 									// Boolean used in validating command line arguments
+var twitterUserName = 'jamesalias99';
+
+var displayResults = '';							// Displays the results to the bash/terminal window and is written to the log.txt file
+
+// File System for node.js
+var fsLog = require('fs');
 
 // Validate the action element from the command line
 validArguments = validateArguments();
@@ -40,12 +46,7 @@ if (validArguments) {
 // Validate the action argument
 function validateArguments() {
 
-	console.log('\n---validateArguments() Entered');
-
 	var argActionLC = "";
-
-	console.log('\n---validateArguments() argAction =', argAction);
-	console.log('---validateArguments() argTitle =', argTitle);
 
 	// Was the required action argument entered?
 	if (argAction === undefined) {
@@ -63,8 +64,6 @@ function validateArguments() {
 	else {
 		argActionLC = argAction.toLowerCase();
 	}
-
-	console.log('---ValidateArguments() argActionLC =', argActionLC);
 
 	// Is the action argument valid?
 	if (argActionLC !== 'my-tweets' &&
@@ -88,11 +87,8 @@ function validateArguments() {
 		for (var i = 4; i < process.argv.length; i++) {
 		  argTitle += ' ' + process.argv[i];
 		}
-		console.log('---validateArguments() argTitle =', argTitle);
 		originalArgTitle = argTitle.trim();
-		console.log('---validateArguments() originalArgTitle =', originalArgTitle);
 		argTitle = originalArgTitle.toLowerCase();
-		console.log('---validateArguments() argTitle.toLowerCase() =', argTitle);
 	}
 
 	argAction = argActionLC;
@@ -102,9 +98,6 @@ function validateArguments() {
 
 // See which function to execute based on the action argument
 function determineAction() {
-
-	console.log('\n---determineAction() Entered');
-	console.log('---determineAction() argAction =', argAction);
 
 	switch(argAction) {
 		case 'my-tweets':
@@ -121,16 +114,8 @@ function determineAction() {
 	}
 }
 
-// Retrieve and display the last 20 tweets for user name jamesalias99
+// Retrieve the last 20 tweets for user jamesalias99
 function getTweet() {
-
-	console.log('\n---getTweet() Entered');
-
-	var i = 0;
-	var tweetMessageCount = 0;
-	var tweetTime = '';
-	var tweetMessage = '';
-	var twitterUserName = 'jamesalias99';
 
 	// Twitter node.js package
 	var Twitter = require('twitter');
@@ -146,38 +131,44 @@ function getTweet() {
 	  	console.log('\n---getTweet() Error =', error);
 	  	return;
 	  }
-
-	  console.log('\nEnjoy reading the latest 20 or so tweets written by ' + twitterUserName + '!');
-	  console.log('----------------------------------------------------------------');
-
-	  tweetMessageCount = response._eventsCount;
-
-	  // Display the tweets
-	  for (i = 0; i < tweetMessageCount; i++) {
-		  tweetTime = tweet[i].created_at;
-		  tweetMessage = tweet[i].text;
-
-		  console.log('\n' + Number.parseInt(i+1) + '. On ' + tweetTime + ' ' + twitterUserName + ' wrote:\n\t"' + tweetMessage + '"');
-		}
+	  else {
+	  	displayTweets(tweet, response);
+	  }
 	});
 }
 
-// Retrieve and display a songs information from Spotify
-function getSpotify() {
-
-	console.log('\n---getSpotify() Entered');
-
-	console.log('\n---getSpotify() argTitle =', argTitle);
+// Display the last 20 tweets for user jamesalias99
+function displayTweets(tweet, response) {
 
 	var i = 0;
-	var isFound = false;
+	var tweetMessageCount = 0;
+	var tweetTime = '';
+	var tweetMessage = '';
+
+	displayResults += '\nEnjoy reading the latest 20 or so tweets written by ' + twitterUserName + '!';
+	displayResults += '\n----------------------------------------------------------------';
+
+	tweetMessageCount = response._eventsCount;
+
+	// Display the tweets
+	for (i = 0; i < tweetMessageCount; i++) {
+	  tweetTime = tweet[i].created_at;
+	  tweetMessage = tweet[i].text;
+
+	  displayResults += '\n\n' + Number.parseInt(i+1) + '. On ' + tweetTime + ' '
+	  							 + twitterUserName + ' wrote:\n\t"' + tweetMessage + '"';
+	}
+
+	console.log(displayResults);
+
+	writeLog();
+}
+
+// Retrieve a songs information from Spotify
+function getSpotify() {
+
 	var artistName = '';
-	var artistNameDefault = '';
 	var songName = '';
-	var spotifyArtistName = '';
-	var spotifySongName = '';
-	var spotifyPreviewURL = '';
-	var spotifyAlbumName = '';
 
 	// Was the song name entered on the command line or in the random.txt file?
 	// If not, use a default song name and artist name.
@@ -192,14 +183,11 @@ function getSpotify() {
 	songName = songName.toLowerCase();
 	songName = songName.replace(/"/g, ' ');
 	songName = songName.trim();
-	console.log('---getSpotify() songName.toLowerCase =', songName);
 
 	artistName = artistName.toLowerCase();
-	console.log('---getSpotify() artistName.toLowerCase =', artistName);
 
 	// Spotify node.js package
 	var Spotify = require('node-spotify-api');
-	console.log('---getSpotify() Spotify =', Spotify);
 
 	// Spotify Credentials
 	var spotify = new Spotify({
@@ -207,45 +195,47 @@ function getSpotify() {
   	secret: '47230c253811409d82afb263202fc86a'
 	});
 
-	console.log('---getSpotify() spotify =', spotify);
-
 	// Search for the track name and artist name.
 	// The artist name defaults if the song name isn't entered on the command line.
 	spotify.search({type: 'track', query: songName, artist: artistName}, function(err, data) {
   	if (err) {
-  		console.log('---getSpotify() Error =', err);
+  		console.log('\n---getSpotify() Error =', err);
   		return;
   	}
+  	else {
+  		displaySpotify(data, songName, artistName);
+  	}
+  });
+}
+
+// Display the song information from Spotify
+function displaySpotify(data, songName, artistName) {
+
+	var i = 0;
+	var isFound = false;
+	var spotifyArtistName = '';
+	var spotifySongName = '';
+	var spotifyPreviewURL = '';
+	var spotifyAlbumName = '';
 
   // Search for the exact song name (and artist name if the song name isn't entered on the command line)
   for (i = 0; i < data.tracks.items.length; i++) {
-  	console.log('---getSpotify() i =', i);
   	
   	// Change the Spotify song name and Spotify artist name to lowercase for matching purposes
-
   	spotifySongName = data.tracks.items[i].name.toLowerCase();
-	  console.log('---getSpotify() spotifySongName =', spotifySongName);
-	  
 	  spotifyArtistName = data.tracks.items[i].artists[0].name.toLowerCase();
-	  console.log('---getSpotify() spotifyArtistName.toLowerCase() =', spotifyArtistName);
 	  
 	  // Was the song name found?
   	if (songName !== spotifySongName) {
   		continue;		// No, continue with the next iteration of the for loop
   	}
 
+  	// Does the artist name match?
   	if (artistName === '' || artistName === spotifyArtistName) {
 	  	spotifySongName = data.tracks.items[i].name;
-		  console.log('---getSpotify() spotifySongName =', spotifySongName);
-		  
 		  spotifyArtistName = data.tracks.items[i].artists[0].name;
-		  console.log('---getSpotify() spotifyArtistName =', spotifyArtistName);
-			
 	  	spotifyAlbumName = data.tracks.items[i].album.name;
-		  console.log('---getSpotify() spotifyAlbumName =', spotifyAlbumName);
-		  
 		  spotifyPreviewURL = data.tracks.items[i].preview_url;
-		  console.log('---getSpotify() spotifyPreviewURL =', spotifyPreviewURL);
   		isFound = true;
   		break;	// Exit out of the for loop
   	}
@@ -254,33 +244,34 @@ function getSpotify() {
   // Was an exact match found?
   if (isFound) {
   	if (argTitle === undefined || argTitle === '') {
-    	console.log('\nSince you\'re to LAZY to tell me a song name, I chose the song "' + spotifySongName + '" for you!');
+    	displayResults += '\nSince you\'re to LAZY to tell me a song name, I chose the song "' + spotifySongName + '" for you!';
   	}
   	else {
-	   	console.log('\nHere is the information for the song "' + spotifySongName + '" that you requested!');
+	   	displayResults += '\nHere is the information for the song "' + spotifySongName + '" that you requested!';
   	}
-   	console.log('\n\tArtist Name:  ', spotifyArtistName);
-   	console.log('\tSong Name:  ', spotifySongName);
+   	displayResults += '\n\n\tArtist Name:  ' + spotifyArtistName;
+   	displayResults += '\n\tSong Name:  ' + spotifySongName;
+	
+	  // Sometimes a song doesn't have a preview URL
    	if (spotifyPreviewURL !== null) {
-   		console.log('\tSong Preview Link:  ', spotifyPreviewURL);
+   		displayResults += '\n\tSong Preview Link:  ' + spotifyPreviewURL;
    	}
    	else {
-   		console.log('\tSong Preview Link:  Unavailable');
+   		displayResults += '\n\tSong Preview Link:  Unavailable';
    	}
-   	console.log('\tAlbum:  ', spotifyAlbumName);
+   	displayResults += '\n\tAlbum:  ' + spotifyAlbumName;
   }
   else {
-  	console.log('Sorry but I couldn\'t find any information for the song "' + originalArgTitle + '".');
+  	displayResults += '\nSorry but I couldn\'t find any information for the song "' + originalArgTitle + '".';
   }
-  });
+
+  console.log(displayResults);
+
+  writeLog();
 }
 
-// Retrieve and display a movies information from the Open Movie Database
+// Retrieve a movies information from the Open Movie Database
 function getMovie() {
-
-	console.log('\n---getMovie() Entered');
-
-	console.log('---getMovie() argTitle =', argTitle);
 
 	var movieName = '';
 	var movieJson = '';
@@ -294,65 +285,71 @@ function getMovie() {
 		movieName = argTitle;
 	}
 
-	console.log('---getMovie() movieName =', movieName);
-
+	// require node.js package
 	var request = require('request');
 
 	request('http://www.omdbapi.com/?t=' + movieName + ' &type=movie&plot=short&apikey=trilogy', function(error, response, body) {
 
 	//Was the request successful?
   if (!error && response.statusCode === 200) {
-
-  	//Parse the body that was returned from the request
     movieJson = JSON.parse(body);
-    console.log('\n---getMovie() movieJson =', movieJson);
-
-    //Was the movie name found in the request?
-    if (movieJson.Title === undefined) {
-    	console.log('\nWhoever told you that "' + originalArgTitle + '" was a movie, they were wrong!');
-    	return;
-    }
-
-    //Was the movie name entered on the command line or in the random.txt file?
-    if (argTitle === undefined || argTitle === '') {
-    	console.log('\nSince you\'re to LAZY to tell me a movie name, I chose the movie "' + movieName + '" for you!');
-    }
-    else {
-    	console.log('\nHere is the information for the movie "' + movieJson.Title + '" that you requested!');
-    }
-    
-    console.log('\n\tMovie Title:  ' + movieJson.Title);
-    console.log('\tYear The Movie Was Released:  ' + movieJson.Year);
-    console.log('\tInternet Movie Database Rating:  ', movieJson.Ratings[0].Value);
-		
-    //There are times when a movie is returned and the Rotten Tomatoes rating is not returned. See if it was returned. I would of preferred using the method hasOwnProperty() to check if the property was returned, but I couldn't figure out how to get it to work.
-		if (movieJson.Ratings.length === 1) {
-    	console.log('\tRotten Tomatoes Rating:  Unavailable');
-    }
-    else {
-      console.log('\tRotten Tomatoes Rating:  ', movieJson.Ratings[1].Value);
-    }
-
-    console.log('\tProduced In The Country(s) Of:  ', movieJson.Country);
-    console.log('\tLanguage(s) Available:  ', movieJson.Language);
-    console.log('\tMovie Plot:  ', movieJson.Plot);
-    console.log('\tActors:  ', movieJson.Actors);
+	  //Was the movie name found in the request?
+	  if (movieJson.Title === undefined) {
+	  	displayResults += '\nWhoever told you that "' + originalArgTitle + '" was a movie, they were wrong!';
+	  	console.log(displayResults);
+	  	writeLog();
+	  }
+	  else {
+	  	displayMovie(movieJson, movieName);
+  	}
+  }
+  else {
+  	console.log('\n---getMovie() Error =', error);
   }
 	});
 }
 
-// Read the random.txt file to determine what action to take
+// Display the movie information from the Open Movie Database
+function displayMovie(movieJson, movieName) {
+
+  //Was the movie name entered on the command line or in the random.txt file?
+  if (argTitle === undefined || argTitle === '') {
+  	displayResults += '\nSince you\'re to LAZY to tell me a movie name, I chose the movie "' + movieName + '" for you!';
+  }
+  else {
+  	displayResults += '\nHere is the information for the movie "' + movieJson.Title + '" that you requested!';
+  }
+  
+  displayResults += '\n\n\tMovie Title:  ' + movieJson.Title;
+  displayResults += '\n\tYear The Movie Was Released:  ' + movieJson.Year;
+  displayResults += '\n\tInternet Movie Database Rating:  ' + movieJson.Ratings[0].Value;
+
+  // Sometimes a movie doesn't have a Rotten Tomatoes rating
+	if (movieJson.Ratings.length === 1) {
+  	displayResults += '\n\tRotten Tomatoes Rating:  Unavailable';
+  }
+  else {
+    displayResults += '\n\tRotten Tomatoes Rating:  ' + movieJson.Ratings[1].Value;
+  }
+
+  displayResults += '\n\tProduced In The Country(s) Of:  ' + movieJson.Country;
+  displayResults += '\n\tLanguage(s) Available:  ' + movieJson.Language;
+  displayResults += '\n\tMovie Plot:  ' + movieJson.Plot;
+  displayResults += '\n\tActors:  ' + movieJson.Actors;
+
+  console.log(displayResults);
+
+  writeLog();
+}
+
+// Read the random.txt file to determine what action to take and song/movie to retrieve
 function getRandom() {
 
-	console.log('\n---getRandom() Entered');
-
-	console.log('\n---getRandom() argTitle =', argTitle);
-
 	// File System for node.js
-	var fs = require('fs');
+	var fsRandom = require('fs');
 
 	// Read the file "random.txt"
-	fs.readFile('random.txt', 'utf8', function(error, data) {
+	fsRandom.readFile('random.txt', 'utf8', function(error, data) {
 
   // Check for errors reading the file
   if (error) {
@@ -363,26 +360,13 @@ function getRandom() {
   //Split the returned data by commas so it can be used
   var dataArr = data.split(',');
 
-  // Display the contents of data
-  console.log('\n---getRandom() error = ', error);
-  console.log('\n---getRandom() data = ', data);
-
-  // We will then re-display the content as an array for later use.
-  console.log('\n---getRandom() dataArr = ', dataArr);
-  console.log('\n---getRandom() dataArr.length = ', dataArr.length);
-
   argAction = dataArr[0];
   argTitle = dataArr[1];
 
- 	// argTitle = argTitle.toLowerCase();
  	if (argTitle !== undefined) {
 		argTitle = argTitle.replace(/"/g, ' ');
 		argTitle = argTitle.trim();
 	}
-
-
-  console.log('\n---getRandom() argAction = ', argAction);
-  console.log('\n---getRandom() argTitle = ', argTitle);
 
   // Validate the action argument from the random.txt file
   validArguments = validateArguments();
@@ -391,4 +375,38 @@ function getRandom() {
 		determineAction();
 	}
 	});
+}
+
+// Append the results to the log.txt file.
+// This is the same information displayed in the bash/terminal window.
+function writeLog() {
+
+	var i = 0;
+	var commandLine = '';
+	var commandLineEntered = '';
+	var liriPosition = 0;
+	var logResults = '';
+	var textFile = 'log.txt';
+
+	// Concatenate the command line arguments
+	for (i = 0; i < process.argv.length; i++) {
+		commandLine += process.argv[i] + ' ';
+	}
+
+	// Find the position of liri.js in the command line
+	var liriPosition = commandLine.search('liri.js');
+	
+	// Extract the string from the command line beginning with liri.js to the end of the command line
+	var commandLineEntered = commandLine.substring(liriPosition);
+
+	// Prepend the command line arguments to displayResults
+	var logResults = '*** node ' + commandLineEntered + '\n' + displayResults + '\n\n\n';
+
+	// Append the log results to the file log.txt.
+	// If log.txt doesn't exist it will be created.
+	fsLog.appendFile(textFile, logResults, function(err) {
+	  if (err) {
+	    console.log('\n---writeLog() Error =', err);
+	  }
+	})
 }
