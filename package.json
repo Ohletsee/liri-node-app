@@ -1,0 +1,25 @@
+{
+  "name": "liri-node-app",
+  "version": "1.0.0",
+  "description": "Takes in parameters from the command line and displays useful data",
+  "main": "liri.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ohletsee/liri-node-app.git"
+  },
+  "author": "James Scott",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Ohletsee/liri-node-app/issues"
+  },
+  "homepage": "https://github.com/Ohletsee/liri-node-app#readme",
+  "dependencies": {
+    "fs": "0.0.1-security",
+    "node-spotify-api": "^1.0.7",
+    "request": "^2.83.0",
+    "twitter": "^1.7.1"
+  }
+}
